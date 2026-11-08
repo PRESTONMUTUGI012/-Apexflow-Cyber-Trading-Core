@@ -1,4 +1,5 @@
-// Public WebSocket Endpoint
+
+    // Public WebSocket Endpoint
 const PUBLIC_WS_URL = 'wss://api.derivws.com/trading/v1/options/ws/public';
 
 let ws = null;
@@ -20,7 +21,6 @@ function initWebSocket() {
 
     ws.onopen = () => {
         updateConnectionStatus(true, 'Connected (Public Feed)');
-        // Request the active symbols list when connected
         ws.send(JSON.stringify({ "active_symbols": "full" }));
     };
 
@@ -42,12 +42,39 @@ function initWebSocket() {
 
 // 2. Process incoming websocket messages
 function handleMessage(data) {
-    // Read data.active_symbols
-    if (data.active_symbols) {
-        populateAllMarketsDropdown(data.active_symbols);
+    const marketSelect = document.getElementById('marketSelect');
+
+    // Handle active symbols list using the exact fix instructions
+    if (Array.isArray(data.active_symbols)) {[span_1](start_span)[span_1](end_span)
+        if (marketSelect) {
+            marketSelect.innerHTML = "";[span_2](start_span)[span_2](end_span)
+
+            data.active_symbols.forEach(market => {[span_3](start_span)[span_3](end_span)
+                const symbol = market.underlying_symbol;[span_4](start_span)[span_4](end_span)
+                const name = market.display_name ||[span_5](start_span)[span_5](end_span)
+                             market.market_display_name ||[span_6](start_span)[span_6](end_span)
+                             market.submarket_display_name || symbol;[span_7](start_span)[span_7](end_span)
+
+                if (!symbol) return;[span_8](start_span)[span_8](end_span)
+
+                const option = document.createElement("option");[span_9](start_span)[span_9](end_span)
+                option.value = symbol;[span_10](start_span)[span_10](end_span)
+                option.textContent = name + " (" + symbol + ")";[span_11](start_span)[span_11](end_span)
+                marketSelect.appendChild(option);[span_12](start_span)[span_12](end_span)
+            });
+
+            // Auto-select and subscribe to the first symbol if not set
+            if (data.active_symbols.length > 0 && !currentSymbol) {
+                currentSymbol = data.active_symbols[0].underlying_symbol;
+                if (currentSymbol) {
+                    marketSelect.value = currentSymbol;
+                    subscribeToSymbolTicks(currentSymbol);
+                }
+            }
+        }
     }
 
-    // Read data.tick.quote and data.tick.epoch
+    // Handle live ticks
     if (data.tick) {
         const priceElement = document.getElementById('price');
         const timeElement = document.getElementById('time');
@@ -84,66 +111,7 @@ function handleMessage(data) {
     }
 }
 
-// 3. Populate dropdown using market.display_name and market.underlying_symbol
-function populateAllMarketsDropdown(symbols) {
-    const select = document.getElementById('marketSelect');
-    if (!select) return;
-    
-    select.innerHTML = '';
-
-    const categories = {
-        'Synthetic Indices': [],
-        'Forex Currency Pairs': [],
-        'Commodities (Gold/Oil)': [],
-        'Cryptocurrencies': [],
-        'Stock & Basket Indices': []
-    };
-
-    symbols.forEach(market => {
-        const displayName = market.display_name;
-        const underlyingSymbol = market.underlying_symbol;
-        const marketName = market.market;
-
-        if (!underlyingSymbol) return;
-
-        if (marketName === 'synthetic_index') {
-            categories['Synthetic Indices'].push(market);
-        } else if (marketName === 'forex') {
-            categories['Forex Currency Pairs'].push(market);
-        } else if (marketName === 'commodities') {
-            categories['Commodities (Gold/Oil)'].push(market);
-        } else if (marketName === 'cryptocurrency') {
-            categories['Cryptocurrencies'].push(market);
-        } else {
-            categories['Stock & Basket Indices'].push(market);
-        }
-    });
-
-    Object.keys(categories).forEach(catName => {
-        if (categories[catName].length > 0) {
-            const group = document.createElement('optgroup');
-            group.label = `--- ${catName.toUpperCase()} ---`;
-
-            categories[catName].forEach(market => {
-                const option = document.createElement('option');
-                option.value = market.underlying_symbol;
-                option.innerText = `${market.display_name} (${market.underlying_symbol})`;
-                group.appendChild(option);
-            });
-
-            select.appendChild(group);
-        }
-    });
-
-    // Auto-select and subscribe to the first symbol if not set
-    if (symbols.length > 0 && !currentSymbol) {
-        currentSymbol = symbols[0].underlying_symbol;
-        select.value = currentSymbol;
-        subscribeToSymbolTicks(currentSymbol);
-    }
-}
-
-// 4. Change symbol subscription dynamically
+// 3. Change symbol subscription dynamically
 function onSymbolChange() {
     const select = document.getElementById('marketSelect');
     if (select) {
@@ -165,7 +133,7 @@ function subscribeToSymbolTicks(symbol) {
     }
 }
 
-// 5. Rise/Fall and Digit Analysis logic
+// 4. Rise/Fall and Digit Analysis logic
 function analyzeTickFeatures(currentQuote, previousQuote) {
     const directionBox = document.getElementById('tickDirectionBox');
     const digitValueEl = document.getElementById('lastDigitValue');
@@ -196,7 +164,7 @@ function analyzeTickFeatures(currentQuote, previousQuote) {
     }
 }
 
-// 6. AI Bot Analysis Engine
+// 5. AI Bot Analysis Engine
 function runAIBotAnalysis(currentQuote, previousQuote, lastDigit) {
     if (previousQuote === null) return;
 
@@ -232,7 +200,7 @@ function runAIBotAnalysis(currentQuote, previousQuote, lastDigit) {
     if (botConfidenceEl) botConfidenceEl.innerText = confidence;
 }
 
-// 7. SVG Chart Rendering
+// 6. SVG Chart Rendering
 function renderSVGChart() {
     if (tickHistory.length < 2) return;
     const svg = document.getElementById('tickChart');
@@ -255,7 +223,7 @@ function renderSVGChart() {
     path.setAttribute('d', `M ${points.join(' L ')}`);
 }
 
-// 8. Add Row to Table
+// 7. Add Row to Table
 function appendTickTableRow(timeStr, quote) {
     const tbody = document.getElementById('tickTableBody');
     if (!tbody) return;
@@ -272,7 +240,7 @@ function appendTickTableRow(timeStr, quote) {
     }
 }
 
-// 9. Update Connection Status Badge (ID: status)
+// 8. Update Connection Status Badge
 function updateConnectionStatus(isConnected, text) {
     const badge = document.getElementById('status');
     if (!badge) return;
@@ -283,3 +251,5 @@ function updateConnectionStatus(isConnected, text) {
         badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span class="text-rose-400 font-mono font-semibold">${text}</span>`;
     }
 }
+
+    
